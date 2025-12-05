@@ -1,0 +1,84 @@
+.anime-loader-container {
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  background: white;
+}
+
+/* SVG Size */
+.anime-svg {
+  width: 260px;
+  height: 260px;
+}
+
+/* Smooth breathing */
+.anime-couple {
+  animation: breathe 3.2s ease-in-out infinite;
+}
+
+@keyframes breathe {
+  0%, 100% { transform: translateY(0) scale(1); }
+  50% { transform: translateY(-8px) scale(1.05); }
+}
+
+/* Leaning kiss animation */
+.boy-head {
+  animation: boyLean 1.6s infinite;
+}
+
+.girl-head {
+  animation: girlLean 1.6s infinite;
+}
+
+@keyframes boyLean {
+  0% { transform: translateX(0); }
+  50% { transform: translateX(8px); }
+  100% { transform: translateX(0); }
+}
+
+@keyframes girlLean {
+  0% { transform: translateX(0); }
+  50% { transform: translateX(-8px); }
+  100% { transform: translateX(0); }
+}
+
+/* Heart pop animation */
+.heart-pop {
+  animation: pop 1.8s infinite ease-in-out;
+  transform-origin: center;
+  opacity: 0.7;
+}
+
+@keyframes pop {
+  0% { transform: scale(0.4); opacity: 0; }
+  50% { transform: scale(1.1); opacity: 1; }
+  100% { transform: scale(0.4); opacity: 0; }
+}
+
+/* Loading text */
+.anime-loading-text {
+  margin-top: 15px;
+  font-size: 20px;
+  font-weight: 600;
+  color: #444;
+  animation: fadeText 2s infinite;
+}
+
+@keyframes fadeText {
+  0% { opacity: 0.4; }
+  50% { opacity: 1; }
+  100% { opacity: 0.4; }
+}
+
+/* Responsive */
+@media (max-width: 500px) {
+  .anime-svg {
+    width: 190px;
+    height: 190px;
+  }
+  .anime-loading-text {
+    font-size: 16px;
+  }
+}

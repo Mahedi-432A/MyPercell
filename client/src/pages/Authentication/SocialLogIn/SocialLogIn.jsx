@@ -1,10 +1,25 @@
 import React from "react";
+import useAuth from "../../../hooks/useAuth";
 
 const SocialLogIn = () => {
+
+    const { signInWithGoogle } = useAuth();
+
+    const handleGoogleSignIn = () => {
+        signInWithGoogle()
+        .then(result => {
+            const user = result.user;
+            console.log(user);
+        })
+        .catch(error => {
+            console.log(error.message);
+        });
+    }
+
   return (
     <div className="text-center">
       <p className="mb-2">OR</p>
-      <button className="btn bg-white text-black border-[#e5e5e5]">
+      <button onClick={handleGoogleSignIn} className="btn bg-white text-black border-[#e5e5e5]">
         <svg
           aria-label="Google logo"
           width="16"
