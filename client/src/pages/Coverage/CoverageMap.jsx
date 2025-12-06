@@ -59,6 +59,7 @@ export default function CoverageMap({ Warehouses, selectedDistrict }) {
         zoom={7}
         scrollWheelZoom={false}
         style={{ height: "450px", width: "100%" }}
+        className="z-0"
       >
         {/* Map Style (OpenStreetMap) */}
         <TileLayer

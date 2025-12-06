@@ -28,7 +28,7 @@ export default function DistrictSearch({ onSelectDistrict, warehouses }) {
   };
 
   return (
-    <div className="w-full max-w-xl mx-auto mb-6 relative">
+    <div className="w-full z-50 max-w-xl mx-auto mb-6 relative">
       <input
         type="text"
         value={query}
@@ -39,7 +39,7 @@ export default function DistrictSearch({ onSelectDistrict, warehouses }) {
 
       {/* Dropdown Results */}
       {results.length > 0 && (
-        <ul className="absolute bg-white border w-full rounded shadow-lg mt-1 z-20">
+        <ul className="absolute bg-white border w-full rounded shadow-lg mt-1 z-50">
           {results.map((district, index) => (
             <li
               key={index}
