@@ -3,7 +3,7 @@ import useAuth from '../hooks/useAuth'
 import KissLoader from '../pages/Shared/Loader/KissLoader';
 import { Navigate } from 'react-router';
 
-const PrivateRoute = ({Children}) => {
+const PrivateRoute = ({children}) => {
     const { user, loading } = useAuth();
 
     if (loading) {
@@ -11,10 +11,10 @@ const PrivateRoute = ({Children}) => {
     }
 
     if (!user) {
-      <Navigate to="/login"></Navigate>;
+      return <Navigate to="/login"></Navigate>;
     }
 
-  return Children;
+  return children;
 }
 
 export default PrivateRoute;

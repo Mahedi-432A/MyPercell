@@ -1,10 +1,11 @@
 import React from "react";
-import { NavLink } from "react-router";
+import { Link, NavLink } from "react-router";
 import Logo from "../Logo/Logo";
 
 const Navbar = () => {
     const navItems = <>
         <li><NavLink to='/'>Home</NavLink></li>
+        <li><NavLink to='/sendParcell'>Send Parcell</NavLink></li>
         <li><NavLink to='/coverage'>Coverage</NavLink></li>
         <li><NavLink to='/about'>About Us</NavLink></li>
     </>
@@ -36,7 +37,7 @@ const Navbar = () => {
             { navItems }
           </ul>
         </div>
-        <span className="btn btn-ghost text-xl">
+        <span>
           <Logo></Logo>
         </span>
       </div>
@@ -46,7 +47,7 @@ const Navbar = () => {
         </ul>
       </div>
       <div className="navbar-end">
-        <button className="btn">Button</button>
+        <Link to="/login"><button className="btn btn-primary text-black">LogIn</button></Link>
       </div>
     </div>
   );
