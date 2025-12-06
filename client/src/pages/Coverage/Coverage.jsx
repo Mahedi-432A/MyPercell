@@ -1,10 +1,13 @@
 import React from 'react'
 import CoverageMap from './CoverageMap'
 import { useLoaderData } from 'react-router'
+import DistrictSearch from './DistrictSearch';
 
 const Coverage = () => {
 
     const Warehouses = useLoaderData();
+
+    const [selectedDistrict, setSelectedDistrict] = React.useState(null);
     // console.log(Warehouses);
 
   return (
@@ -14,10 +17,13 @@ const Coverage = () => {
       </h2>
 
       <p className="text-center text-gray-600 mb-10">
-        Search your district and check if we deliver there.
+        Search your district to locate our branch coverage.
       </p>
 
-      <CoverageMap Warehouses={Warehouses} />
+      {/* Search Box */}
+      <DistrictSearch onSelectDistrict={setSelectedDistrict} warehouses={Warehouses} />
+
+      <CoverageMap Warehouses={Warehouses} selectedDistrict={selectedDistrict} />
     </section>
   )
 }

@@ -1,4 +1,4 @@
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import { MapContainer, TileLayer, Marker, Popup, useMap } from "react-leaflet";
 import "leaflet/dist/leaflet.css";
 
 // Fix default marker icon issue in Vite + Leaflet
@@ -6,6 +6,7 @@ import L from "leaflet";
 import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
 import markerIcon from "leaflet/dist/images/marker-icon.png";
 import markerShadow from "leaflet/dist/images/marker-shadow.png";
+import { useEffect } from "react";
 
 delete L.Icon.Default.prototype._getIconUrl;
 
@@ -15,7 +16,27 @@ L.Icon.Default.mergeOptions({
   shadowUrl: markerShadow,
 });
 
-export default function CoverageMap({ Warehouses }) {
+// Helper component to move map on district selection
+function MapController({ selectedDistrict }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!selectedDistrict) return;
+
+    map.flyTo([selectedDistrict.latitude, selectedDistrict.longitude], 14, {
+      duration: 1.5,
+    });
+
+    // Open popup automatically
+    if (selectedDistrict._popupRef) {
+      selectedDistrict._popupRef.openOn(map);
+    }
+  }, [selectedDistrict]);
+
+  return null;
+}
+
+export default function CoverageMap({ Warehouses, selectedDistrict }) {
   const branches = Warehouses;
 
   //   const branchIcon = L.icon({
@@ -45,6 +66,9 @@ export default function CoverageMap({ Warehouses }) {
           attribution="© OpenStreetMap contributors"
         />
 
+        {/* Map controller handles search zoom */}
+        <MapController selectedDistrict={selectedDistrict} />
+
         {/* Marker Example */}
         {/* ✅ NEW — Loop through all branches and show markers */}
         {branches.map((branch, index) => (
@@ -56,7 +80,9 @@ export default function CoverageMap({ Warehouses }) {
             <Popup>
               <div>
                 <h2 className="font-bold text-lg">{branch.district}</h2>
-                <p className="text-sm">Area: {branch.covered_area.join(", ")}</p>
+                <p className="text-sm">
+                  Area: {branch.covered_area.join(", ")}
+                </p>
               </div>
             </Popup>
           </Marker>
