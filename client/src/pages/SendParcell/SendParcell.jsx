@@ -5,8 +5,7 @@ import { useLoaderData } from "react-router";
 // import { branches } from "../data/branchesData"; // <-- your 64-district data
 
 export default function SendParcell() {
-
-  const branches = useLoaderData();
+  const branches = useLoaderData() || [];
 
   const {
     register,
@@ -17,9 +16,14 @@ export default function SendParcell() {
     formState: { errors },
   } = useForm();
 
+  // eslint-disable-next-line react-hooks/incompatible-library
   const parcelType = watch("parcelType");
   const senderRegion = watch("senderRegion");
   const receiverRegion = watch("receiverRegion");
+
+  // আমরা এখন সেন্টার (জেলা) নাম দিয়ে চেক করব সেম সিটি কি না
+  const senderCenter = watch("senderCenter");
+  const receiverCenter = watch("receiverCenter");
 
   // -----------------------
   // 1) Derive unique regions (no repeats)
@@ -28,7 +32,7 @@ export default function SendParcell() {
     // branches is an array; region may repeat — we dedupe
     const set = new Set(branches.map((b) => b.region));
     return Array.from(set);
-  }, []);
+  }, [branches]);
 
   // -----------------------
   // 2) For a selected region, get list of districts (as service centers)
@@ -38,14 +42,14 @@ export default function SendParcell() {
     return branches
       .filter((b) => b.region === senderRegion)
       .map((b) => ({ id: b.district, name: b.district }));
-  }, [senderRegion]);
+  }, [senderRegion, branches]);
 
   const receiverCenters = useMemo(() => {
     if (!receiverRegion) return [];
     return branches
       .filter((b) => b.region === receiverRegion)
       .map((b) => ({ id: b.district, name: b.district }));
-  }, [receiverRegion]);
+  }, [receiverRegion, branches]);
 
   // -----------------------
   // 3) Reset service center when region changes (keeps sync)
@@ -62,11 +66,60 @@ export default function SendParcell() {
   // 4) Cost calc (simple example; adapt to your rules)
   // -----------------------
   const calculateCost = (data) => {
-    let cost = data.parcelType === "document" ? 50 : 120; // base
-    if (data.weight) cost += Number(data.weight) * 12; // per kg
-    // example: if sender or receiver center is far (you can mark specific districts),
-    // you can add conditional extra charge here.
-    return cost;
+    // ১. চেক করা হচ্ছে একই সিটি/জেলা কি না
+    const isSameCity = data.senderCenter === data.receiverCenter;
+
+    // ২. ওজনকে নাম্বারে কনভার্ট করা (সেফটি)
+    const weight = Number(data.weight) || 0;
+
+    // ৩. ডকুমেন্ট পার্সেল লজিক
+    if (data.parcelType === "document") {
+      // টেবিলে: Within City = 60, Outside = 80
+      return isSameCity ? 60 : 80;
+    }
+
+    // ৪. নন-ডকুমেন্ট পার্সেল লজিক
+    else {
+      // বেস প্রাইস (৩ কেজি পর্যন্ত)
+      // টেবিলে: Within City = 110, Outside = 150
+      let basePrice = isSameCity ? 110 : 150;
+
+      if (weight <= 3) {
+        return basePrice;
+      } else {
+        // ৩ কেজির বেশি হলে
+        const extraWeight = weight - 3;
+        const pricePerKg = 40; // টেবিলে: +40/kg
+
+        let totalCost = basePrice + extraWeight * pricePerKg;
+
+        // টেবিলে Outside City >3kg এর ঘরে লেখা: "+40/kg +40 extra"
+        // তাই ভিন্ন সিটি হলে অতিরিক্ত ৪০ টাকা যোগ করা হলো
+        if (!isSameCity) {
+          totalCost += 40;
+        }
+
+        return totalCost;
+      }
+    }
+  };
+
+  const handleFinalSubmit = async (data, cost, toastId) => {
+    toast.dismiss(toastId);
+
+    // Simulating API Call
+    // try {
+    //    await axios.post('/api/parcels', { ...data, cost });
+    //    toast.success("Parcel created successfully!");
+    //    reset();
+    // } catch (err) {
+    //    toast.error("Something went wrong");
+    // }
+
+    // For now:
+    console.log("Saving to DB:", { ...data, cost });
+    toast.success("Parcel created successfully!");
+    reset();
   };
 
   // -----------------------
@@ -77,33 +130,25 @@ export default function SendParcell() {
 
     toast.custom(
       (t) => (
-        <div className="bg-white shadow p-4 rounded-lg">
-          <h3 className="text-lg font-bold mb-2">Delivery Cost</h3>
-          <p className="mb-4">Your delivery cost is: <b>{cost} ৳</b></p>
+        <div className="bg-white shadow-xl border p-6 rounded-lg w-80">
+          <h3 className="text-lg font-bold mb-2 text-gray-800">
+            Confirm Order
+          </h3>
+          <p className="mb-4 text-gray-600">
+            Total Cost:{" "}
+            <span className="font-bold text-primary text-xl">{cost} ৳</span>
+          </p>
 
-          <div className="flex gap-2 justify-end">
+          <div className="flex gap-3 justify-end">
             <button
-              className="btn btn-ghost btn-sm"
+              className="btn btn-sm btn-ghost"
               onClick={() => toast.dismiss(t.id)}
             >
               Cancel
             </button>
-
             <button
-              className="btn btn-primary btn-sm"
-              onClick={() => {
-                toast.dismiss(t.id);
-
-                // save to DB here (commented example)
-                // fetch('/api/parcels', {
-                //   method: 'POST',
-                //   headers: { 'Content-Type': 'application/json' },
-                //   body: JSON.stringify({ ...data, cost, creation_date: new Date() })
-                // });
-
-                toast.success("Parcel created successfully!");
-                reset();
-              }}
+              className="btn btn-sm btn-primary"
+              onClick={() => handleFinalSubmit(data, cost, t.id)}
             >
               Confirm
             </button>
@@ -121,7 +166,12 @@ export default function SendParcell() {
         Fill out the form below to create a parcel delivery request.
       </p>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-8">
+      <form
+        onSubmit={handleSubmit(onSubmit, (errors) =>
+          console.log("Form Errors:", errors)
+        )}
+        className="bg-gray-300 space-y-8"
+      >
         {/* ---------------- Parcel Info ---------------- */}
         <section className="p-5 border rounded-xl">
           <h2 className="text-lg font-semibold mb-4">1. Parcel Information</h2>
@@ -137,7 +187,9 @@ export default function SendParcell() {
                 <option value="document">Document</option>
                 <option value="non-document">Non-Document</option>
               </select>
-              {errors.parcelType && <p className="text-red-500 text-sm">Required</p>}
+              {errors.parcelType && (
+                <p className="text-red-500 text-sm">Required</p>
+              )}
             </div>
 
             <div>
@@ -155,7 +207,7 @@ export default function SendParcell() {
               <div>
                 <label className="label">Weight (kg)</label>
                 <input
-                  {...register("weight")}
+                  {...register("weight", { valueAsNumber: true })}
                   type="number"
                   step="0.1"
                   min="0.1"
@@ -177,18 +229,23 @@ export default function SendParcell() {
               <input
                 {...register("senderName", { required: true })}
                 className="input input-bordered w-full"
-                defaultValue="Your Name"
               />
-              {errors.senderName && <p className="text-red-500 text-sm">Required</p>}
+              {errors.senderName && (
+                <p className="text-red-500 text-sm">Required</p>
+              )}
             </div>
 
             <div>
               <label className="label">Sender Contact *</label>
               <input
-                {...register("senderContact", { required: true })}
+                {...register("senderContact", {
+                  required: true,
+                })}
                 className="input input-bordered w-full"
               />
-              {errors.senderContact && <p className="text-red-500 text-sm">Required</p>}
+              {errors.senderContact && (
+                <p className="text-red-500 text-sm">Required</p>
+              )}
             </div>
 
             <div>
@@ -204,11 +261,15 @@ export default function SendParcell() {
                   </option>
                 ))}
               </select>
-              {errors.senderRegion && <p className="text-red-500 text-sm">Required</p>}
+              {errors.senderRegion && (
+                <p className="text-red-500 text-sm">Required</p>
+              )}
             </div>
 
             <div>
-              <label className="label">Select Service Center (District) *</label>
+              <label className="label">
+                Select Service Center (District) *
+              </label>
               <select
                 {...register("senderCenter", { required: true })}
                 className="select select-bordered w-full"
@@ -221,7 +282,9 @@ export default function SendParcell() {
                   </option>
                 ))}
               </select>
-              {errors.senderCenter && <p className="text-red-500 text-sm">Required</p>}
+              {errors.senderCenter && (
+                <p className="text-red-500 text-sm">Required</p>
+              )}
             </div>
 
             <div className="md:col-span-2">
@@ -230,7 +293,9 @@ export default function SendParcell() {
                 {...register("senderAddress", { required: true })}
                 className="textarea textarea-bordered w-full"
               />
-              {errors.senderAddress && <p className="text-red-500 text-sm">Required</p>}
+              {errors.senderAddress && (
+                <p className="text-red-500 text-sm">Required</p>
+              )}
             </div>
 
             <div className="md:col-span-2">
@@ -239,14 +304,18 @@ export default function SendParcell() {
                 {...register("pickupInstruction", { required: true })}
                 className="textarea textarea-bordered w-full"
               />
-              {errors.pickupInstruction && <p className="text-red-500 text-sm">Required</p>}
+              {errors.pickupInstruction && (
+                <p className="text-red-500 text-sm">Required</p>
+              )}
             </div>
           </div>
         </section>
 
         {/* ---------------- Receiver Info ---------------- */}
         <section className="p-5 border rounded-xl">
-          <h2 className="text-lg font-semibold mb-4">3. Receiver Information</h2>
+          <h2 className="text-lg font-semibold mb-4">
+            3. Receiver Information
+          </h2>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -255,7 +324,9 @@ export default function SendParcell() {
                 {...register("receiverName", { required: true })}
                 className="input input-bordered w-full"
               />
-              {errors.receiverName && <p className="text-red-500 text-sm">Required</p>}
+              {errors.receiverName && (
+                <p className="text-red-500 text-sm">Required</p>
+              )}
             </div>
 
             <div>
@@ -264,7 +335,9 @@ export default function SendParcell() {
                 {...register("receiverContact", { required: true })}
                 className="input input-bordered w-full"
               />
-              {errors.receiverContact && <p className="text-red-500 text-sm">Required</p>}
+              {errors.receiverContact && (
+                <p className="text-red-500 text-sm">Required</p>
+              )}
             </div>
 
             <div>
@@ -280,11 +353,15 @@ export default function SendParcell() {
                   </option>
                 ))}
               </select>
-              {errors.receiverRegion && <p className="text-red-500 text-sm">Required</p>}
+              {errors.receiverRegion && (
+                <p className="text-red-500 text-sm">Required</p>
+              )}
             </div>
 
             <div>
-              <label className="label">Select Service Center (District) *</label>
+              <label className="label">
+                Select Service Center (District) *
+              </label>
               <select
                 {...register("receiverCenter", { required: true })}
                 className="select select-bordered w-full"
@@ -297,7 +374,9 @@ export default function SendParcell() {
                   </option>
                 ))}
               </select>
-              {errors.receiverCenter && <p className="text-red-500 text-sm">Required</p>}
+              {errors.receiverCenter && (
+                <p className="text-red-500 text-sm">Required</p>
+              )}
             </div>
 
             <div className="md:col-span-2">
@@ -306,7 +385,9 @@ export default function SendParcell() {
                 {...register("receiverAddress", { required: true })}
                 className="textarea textarea-bordered w-full"
               />
-              {errors.receiverAddress && <p className="text-red-500 text-sm">Required</p>}
+              {errors.receiverAddress && (
+                <p className="text-red-500 text-sm">Required</p>
+              )}
             </div>
 
             <div className="md:col-span-2">
@@ -315,13 +396,17 @@ export default function SendParcell() {
                 {...register("deliveryInstruction", { required: true })}
                 className="textarea textarea-bordered w-full"
               />
-              {errors.deliveryInstruction && <p className="text-red-500 text-sm">Required</p>}
+              {errors.deliveryInstruction && (
+                <p className="text-red-500 text-sm">Required</p>
+              )}
             </div>
           </div>
         </section>
 
         <div className="text-center">
-          <button className="btn btn-primary px-8">Submit Parcel</button>
+          <button type="submit" className="btn btn-primary px-8">
+            Submit Parcel
+          </button>
         </div>
       </form>
     </div>
